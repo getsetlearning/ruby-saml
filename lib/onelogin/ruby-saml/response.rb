@@ -585,7 +585,7 @@ module OneLogin
         )
         doc = (response_signed || decrypted_document.nil?) ? document : decrypted_document
 
-        unless fingerprint && doc.validate_document(fingerprint,
+        unless fingerprint && doc.validate_document(fingerprint, true,
                                                     :fingerprint_alg => settings.idp_cert_fingerprint_algorithm,
                                                     :certificate => settings.idp_cert)
           error_msg = "Invalid Signature on SAML Response"
