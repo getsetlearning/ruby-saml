@@ -199,14 +199,15 @@ module XMLSecurity
         "//ds:X509Certificate",
         { "ds"=>DSIG }
       )
-      unless cert_element
+      base64_cert = cert_element ? cert_element.text : options[:certificate]
+
+      unless base64_cert
         if soft
           return false
         else
           raise OneLogin::RubySaml::ValidationError.new("Certificate element missing in response (ds:X509Certificate)")
         end
       end
-      base64_cert = cert_element.text
       cert_text = Base64.decode64(base64_cert)
       cert = OpenSSL::X509::Certificate.new(cert_text)
 
