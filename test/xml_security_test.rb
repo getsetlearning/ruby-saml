@@ -55,8 +55,10 @@ class XmlSecurityTest < Minitest::Test
                     "<ds:DigestValue>b9xsAXLsynugg3Wc1CI3kpWku+0=</ds:DigestValue>")
       mod_document = XMLSecurity::SignedDocument.new(decoded_response)
       base64cert = mod_document.elements["//ds:X509Certificate"].text
+      cert_text = Base64.decode64(base64cert)
+      cert = OpenSSL::X509::Certificate.new(cert_text)
       exception = assert_raises(OneLogin::RubySaml::ValidationError) do
-        mod_document.validate_signature(base64cert, false)
+        mod_document.validate_signature(cert, false)
       end
       assert_equal("Key validation error", exception.message)
       assert_includes mod_document.errors, "Key validation error"
@@ -65,7 +67,9 @@ class XmlSecurityTest < Minitest::Test
     it "correctly obtain the digest method with alternate namespace declaration" do
       adfs_document = XMLSecurity::SignedDocument.new(fixture(:adfs_response_xmlns, false))
       base64cert = adfs_document.elements["//X509Certificate"].text
-      assert adfs_document.validate_signature(base64cert, false)
+      cert_text = Base64.decode64(base64cert)
+      cert = OpenSSL::X509::Certificate.new(cert_text)
+      assert adfs_document.validate_signature(cert, false)
     end
 
     it "raise validation error when the X509Certificate is missing" do

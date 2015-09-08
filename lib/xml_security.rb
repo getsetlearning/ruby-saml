@@ -193,23 +193,24 @@ module XMLSecurity
     end
 
     def validate_document(idp_cert_fingerprint, soft = true, options = {})
-      # get cert from response
-      cert_element = REXML::XPath.first(
-        self,
-        "//ds:X509Certificate",
-        { "ds"=>DSIG }
-      )
-      base64_cert = cert_element ? cert_element.text : options[:certificate]
-
-      unless base64_cert
-        if soft
-          return false
-        else
-          raise OneLogin::RubySaml::ValidationError.new("Certificate element missing in response (ds:X509Certificate)")
+      cert = options[:certificate] || begin
+        # get cert from response
+        cert_element = REXML::XPath.first(
+          self,
+          "//ds:X509Certificate",
+          { "ds"=>DSIG }
+        )
+        unless cert_element
+          if soft
+            return false
+          else
+            raise OneLogin::RubySaml::ValidationError.new("Certificate element missing in response (ds:X509Certificate)")
+          end
         end
+        base64_cert = cert_element.text
+        cert_text = Base64.decode64(base64_cert)
+        OpenSSL::X509::Certificate.new(cert_text)
       end
-      cert_text = Base64.decode64(base64_cert)
-      cert = OpenSSL::X509::Certificate.new(cert_text)
 
       if options[:fingerprint_alg]
         fingerprint_alg = XMLSecurity::BaseDocument.new.algorithm(options[:fingerprint_alg]).new
@@ -224,10 +225,10 @@ module XMLSecurity
         return soft ? false : (raise OneLogin::RubySaml::ValidationError.new("Fingerprint mismatch"))
       end
 
-      validate_signature(base64_cert, soft)
+      validate_signature(cert, soft)
     end
 
-    def validate_signature(base64_cert, soft = true)
+    def validate_signature(cert, soft = true)
       # validate references
 
       # check for inclusive namespaces
@@ -313,8 +314,8 @@ module XMLSecurity
       signature = Base64.decode64(base64_signature)
 
       # get certificate object
-      cert_text = Base64.decode64(base64_cert)
-      cert = OpenSSL::X509::Certificate.new(cert_text)
+      # cert_text = Base64.decode64(base64_cert)
+      # cert = OpenSSL::X509::Certificate.new(cert_text)
 
       # signature method
       sig_alg_value = REXML::XPath.first(
